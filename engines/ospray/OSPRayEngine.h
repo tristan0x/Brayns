@@ -23,14 +23,12 @@
 
 #include <brayns/engine/Engine.h>
 
-namespace brayns
-{
+namespace brayns {
 /**
  * OSPRay implementation of the ray-tracing engine.
  */
-class OSPRayEngine : public Engine
-{
-public:
+class OSPRayEngine: public Engine {
+  public:
     OSPRayEngine(ParametersManager& parametersManager);
 
     ~OSPRayEngine();
@@ -41,24 +39,23 @@ public:
     /** @copydoc Engine::getMinimumFrameSize */
     Vector2ui getMinimumFrameSize() const final;
 
-    FrameBufferPtr createFrameBuffer(
-        const std::string& name, const Vector2ui& frameSize,
-        FrameBufferFormat frameBufferFormat) const final;
+    FrameBufferPtr createFrameBuffer(const std::string& name,
+                                     const Vector2ui& frameSize,
+                                     FrameBufferFormat frameBufferFormat) const final;
 
     ScenePtr createScene(AnimationParameters& animationParameters,
                          GeometryParameters& geometryParameters,
                          VolumeParameters& volumeParameters) const final;
     CameraPtr createCamera() const final;
-    RendererPtr createRenderer(
-        const AnimationParameters& animationParameters,
-        const RenderingParameters& renderingParameters) const final;
+    RendererPtr createRenderer(const AnimationParameters& animationParameters,
+                               const RenderingParameters& renderingParameters) const final;
 
-private:
+  private:
     void _createCameras();
     void _createRenderers();
 
     bool _useDynamicLoadBalancer{false};
 };
-}
+}  // namespace brayns
 
-#endif // OSPRAYENGINE_H
+#endif  // OSPRAYENGINE_H

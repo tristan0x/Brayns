@@ -25,36 +25,27 @@
 #include <brayns/common/log.h>
 #include <brayns/common/utils/utils.h>
 
-namespace brayns
-{
-void toOSPRayProperties(const PropertyMap& object, OSPObject ospObject)
-{
-    try
-    {
-        for (const auto& prop : object.getProperties())
-        {
-            switch (prop->type)
-            {
+namespace brayns {
+void toOSPRayProperties(const PropertyMap& object, OSPObject ospObject) {
+    try {
+        for (const auto& prop: object.getProperties()) {
+            switch (prop->type) {
             case Property::Type::Double:
                 osphelper::set(ospObject, prop->name.c_str(),
                                static_cast<float>(prop->get<double>()));
                 break;
             case Property::Type::Int:
-                osphelper::set(ospObject, prop->name.c_str(),
-                               prop->get<int32_t>());
+                osphelper::set(ospObject, prop->name.c_str(), prop->get<int32_t>());
                 break;
             case Property::Type::Bool:
-                osphelper::set(ospObject, prop->name.c_str(),
-                               prop->get<bool>());
+                osphelper::set(ospObject, prop->name.c_str(), prop->get<bool>());
                 break;
             case Property::Type::String:
-                osphelper::set(ospObject, prop->name.c_str(),
-                               prop->get<std::string>());
+                osphelper::set(ospObject, prop->name.c_str(), prop->get<std::string>());
                 break;
             case Property::Type::Vec2d:
                 osphelper::set(ospObject, prop->name.c_str(),
-                               Vector2f(toGlmVec(
-                                   prop->get<std::array<double, 2>>())));
+                               Vector2f(toGlmVec(prop->get<std::array<double, 2>>())));
                 break;
             case Property::Type::Vec2i:
                 osphelper::set(ospObject, prop->name.c_str(),
@@ -62,8 +53,7 @@ void toOSPRayProperties(const PropertyMap& object, OSPObject ospObject)
                 break;
             case Property::Type::Vec3d:
                 osphelper::set(ospObject, prop->name.c_str(),
-                               Vector3f(toGlmVec(
-                                   prop->get<std::array<double, 3>>())));
+                               Vector3f(toGlmVec(prop->get<std::array<double, 3>>())));
                 break;
             case Property::Type::Vec3i:
                 osphelper::set(ospObject, prop->name.c_str(),
@@ -71,86 +61,67 @@ void toOSPRayProperties(const PropertyMap& object, OSPObject ospObject)
                 break;
             case Property::Type::Vec4d:
                 osphelper::set(ospObject, prop->name.c_str(),
-                               Vector4f(toGlmVec(
-                                   prop->get<std::array<double, 4>>())));
+                               Vector4f(toGlmVec(prop->get<std::array<double, 4>>())));
                 break;
             }
         }
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         BRAYNS_ERROR << "Failed to apply properties for ospObject" << std::endl;
     }
 }
 
-void toOSPRayProperties(const PropertyObject& object, OSPObject ospObject)
-{
+void toOSPRayProperties(const PropertyObject& object, OSPObject ospObject) {
     toOSPRayProperties(object.getPropertyMap(), ospObject);
 }
 
 template <typename T, std::size_t N>
-auto _toStdArray(const ospcommon::vec_t<T, N>& input)
-{
+auto _toStdArray(const ospcommon::vec_t<T, N>& input) {
     std::array<T, N> array;
     array.fill(0);
     std::copy(&input[0], &input[N - 1], array.begin());
     return array;
 }
 
-void fromOSPRayProperties(PropertyMap& object, ospray::ManagedObject& ospObject)
-{
-    for (const auto& prop : object.getProperties())
-    {
-        switch (prop->type)
-        {
+void fromOSPRayProperties(PropertyMap& object, ospray::ManagedObject& ospObject) {
+    for (const auto& prop: object.getProperties()) {
+        switch (prop->type) {
         case Property::Type::Double:
-            prop->set(double(
-                ospObject.getParam1f(prop->name.c_str(), prop->get<double>())));
+            prop->set(double(ospObject.getParam1f(prop->name.c_str(), prop->get<double>())));
             break;
         case Property::Type::Int:
-            prop->set(
-                ospObject.getParam1i(prop->name.c_str(), prop->get<int32_t>()));
+            prop->set(ospObject.getParam1i(prop->name.c_str(), prop->get<int32_t>()));
             break;
         case Property::Type::Bool:
-            prop->set(
-                ospObject.getParam(prop->name.c_str(), prop->get<bool>()));
+            prop->set(ospObject.getParam(prop->name.c_str(), prop->get<bool>()));
             break;
         case Property::Type::String:
-            prop->set(ospObject.getParamString(prop->name.c_str(),
-                                               prop->get<std::string>()));
+            prop->set(ospObject.getParamString(prop->name.c_str(), prop->get<std::string>()));
             break;
         case Property::Type::Vec2d:
             prop->set(_toStdArray<double, 2>(
-                ospObject.getParam<ospcommon::vec2f>(prop->name.c_str(),
-                                                     ospcommon::vec2f())));
+                ospObject.getParam<ospcommon::vec2f>(prop->name.c_str(), ospcommon::vec2f())));
             break;
         case Property::Type::Vec2i:
             prop->set(_toStdArray<int32_t, 2>(
-                ospObject.getParam<ospcommon::vec2i>(prop->name.c_str(),
-                                                     ospcommon::vec2i())));
+                ospObject.getParam<ospcommon::vec2i>(prop->name.c_str(), ospcommon::vec2i())));
             break;
         case Property::Type::Vec3d:
             prop->set(_toStdArray<double, 3>(
-                ospObject.getParam<ospcommon::vec3f>(prop->name.c_str(),
-                                                     ospcommon::vec3f())));
+                ospObject.getParam<ospcommon::vec3f>(prop->name.c_str(), ospcommon::vec3f())));
             break;
         case Property::Type::Vec3i:
             prop->set(_toStdArray<int32_t, 3>(
-                ospObject.getParam<ospcommon::vec3i>(prop->name.c_str(),
-                                                     ospcommon::vec3i())));
+                ospObject.getParam<ospcommon::vec3i>(prop->name.c_str(), ospcommon::vec3i())));
             break;
         case Property::Type::Vec4d:
             prop->set(_toStdArray<double, 4>(
-                ospObject.getParam<ospcommon::vec4f>(prop->name.c_str(),
-                                                     ospcommon::vec4f())));
+                ospObject.getParam<ospcommon::vec4f>(prop->name.c_str(), ospcommon::vec4f())));
             break;
         }
     }
 }
 
-ospcommon::affine3f transformationToAffine3f(
-    const Transformation& transformation)
-{
+ospcommon::affine3f transformationToAffine3f(const Transformation& transformation) {
     // https://stackoverflow.com/a/18436193
     const auto& quat = transformation.getRotation();
     const float x = atan2(2 * (quat.w * quat.x + quat.y * quat.z),
@@ -171,74 +142,57 @@ ospcommon::affine3f transformationToAffine3f(
     return ospcommon::affine3f::translate({float(center.x / (1. / scale.x)),
                                            float(center.y / (1. / scale.y)),
                                            float(center.z / (1. / scale.z))}) *
-           rot *
-           ospcommon::affine3f::scale(
-               {float(scale.x), float(scale.y), float(scale.z)}) *
+           rot * ospcommon::affine3f::scale({float(scale.x), float(scale.y), float(scale.z)}) *
            ospcommon::affine3f::translate({float(translation.x - center.x),
                                            float(translation.y - center.y),
                                            float(translation.z - center.z)});
 }
 
-void addInstance(OSPModel rootModel, OSPModel modelToAdd,
-                 const Transformation& transform)
-{
+void addInstance(OSPModel rootModel, OSPModel modelToAdd, const Transformation& transform) {
     auto affine = transformationToAffine3f(transform);
-    OSPGeometry instance = ospNewInstance(modelToAdd, (osp::affine3f&)affine);
+    OSPGeometry instance = ospNewInstance(modelToAdd, (osp::affine3f&) affine);
     ospCommit(instance);
     ospAddGeometry(rootModel, instance);
     ospRelease(instance);
 }
 
-void addInstance(OSPModel rootModel, OSPModel modelToAdd,
-                 const ospcommon::affine3f& affine)
-{
-    OSPGeometry instance = ospNewInstance(modelToAdd, (osp::affine3f&)affine);
+void addInstance(OSPModel rootModel, OSPModel modelToAdd, const ospcommon::affine3f& affine) {
+    OSPGeometry instance = ospNewInstance(modelToAdd, (osp::affine3f&) affine);
     ospCommit(instance);
     ospAddGeometry(rootModel, instance);
     ospRelease(instance);
 }
 
-namespace osphelper
-{
-void set(OSPObject obj, const char* id, const char* s)
-{
+namespace osphelper {
+void set(OSPObject obj, const char* id, const char* s) {
     ospSetString(obj, id, s);
 }
-void set(OSPObject obj, const char* id, const std::string& s)
-{
+void set(OSPObject obj, const char* id, const std::string& s) {
     ospSetString(obj, id, s.c_str());
 }
-void set(OSPObject obj, const char* id, float v)
-{
+void set(OSPObject obj, const char* id, float v) {
     ospSet1f(obj, id, v);
 }
-void set(OSPObject obj, const char* id, bool v)
-{
+void set(OSPObject obj, const char* id, bool v) {
     ospSet1b(obj, id, v);
 }
-void set(OSPObject obj, const char* id, int32_t v)
-{
+void set(OSPObject obj, const char* id, int32_t v) {
     ospSet1i(obj, id, v);
 }
-void set(OSPObject obj, const char* id, const Vector2f& v)
-{
+void set(OSPObject obj, const char* id, const Vector2f& v) {
     ospSet2fv(obj, id, glm::value_ptr(v));
 }
-void set(OSPObject obj, const char* id, const Vector2i& v)
-{
+void set(OSPObject obj, const char* id, const Vector2i& v) {
     ospSet2iv(obj, id, glm::value_ptr(v));
 }
-void set(OSPObject obj, const char* id, const Vector3f& v)
-{
+void set(OSPObject obj, const char* id, const Vector3f& v) {
     ospSet3fv(obj, id, glm::value_ptr(v));
 }
-void set(OSPObject obj, const char* id, const Vector3i& v)
-{
+void set(OSPObject obj, const char* id, const Vector3i& v) {
     ospSet3iv(obj, id, glm::value_ptr(v));
 }
-void set(OSPObject obj, const char* id, const Vector4f& v)
-{
+void set(OSPObject obj, const char* id, const Vector4f& v) {
     ospSet4fv(obj, id, glm::value_ptr(v));
 }
-} // namespace osphelper
-} // namespace brayns
+}  // namespace osphelper
+}  // namespace brayns

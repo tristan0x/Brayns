@@ -24,13 +24,10 @@
 
 #include <ospray.h>
 
-namespace brayns
-{
-class OSPRayModel : public Model
-{
-public:
-    OSPRayModel(AnimationParameters& animationParameters,
-                VolumeParameters& volumeParameters);
+namespace brayns {
+class OSPRayModel: public Model {
+  public:
+    OSPRayModel(AnimationParameters& animationParameters, VolumeParameters& volumeParameters);
     ~OSPRayModel() final;
 
     void setMemoryFlags(const size_t memoryManagementFlags);
@@ -38,9 +35,15 @@ public:
     void commitGeometry() final;
     void commitMaterials(const std::string& renderer);
 
-    OSPModel getPrimaryModel() const { return _primaryModel; }
-    OSPModel getSecondaryModel() const { return _secondaryModel; }
-    OSPModel getBoundingBoxModel() const { return _boundingBoxModel; }
+    OSPModel getPrimaryModel() const {
+        return _primaryModel;
+    }
+    OSPModel getSecondaryModel() const {
+        return _secondaryModel;
+    }
+    OSPModel getBoundingBoxModel() const {
+        return _boundingBoxModel;
+    }
     SharedDataVolumePtr createSharedDataVolume(const Vector3ui& dimensions,
                                                const Vector3f& spacing,
                                                const DataType type) const final;
@@ -50,32 +53,30 @@ public:
 
     void buildBoundingBox() final;
 
-    OSPData simulationData() const { return _ospSimulationData; }
-    OSPTransferFunction transferFunction() const
-    {
+    OSPData simulationData() const {
+        return _ospSimulationData;
+    }
+    OSPTransferFunction transferFunction() const {
         return _ospTransferFunction;
     }
 
-protected:
+  protected:
     void _commitTransferFunctionImpl(const Vector3fs& colors,
                                      const floats& opacities,
                                      const Vector2d valueRange) final;
-    void _commitSimulationDataImpl(const float* frameData,
-                                   const size_t frameSize) final;
+    void _commitSimulationDataImpl(const float* frameData, const size_t frameSize) final;
 
-private:
+  private:
     using GeometryMap = std::map<size_t, OSPGeometry>;
 
-    OSPGeometry& _createGeometry(GeometryMap& map, size_t materialID,
-                                 const char* name);
+    OSPGeometry& _createGeometry(GeometryMap& map, size_t materialID, const char* name);
     void _commitSpheres(const size_t materialId);
     void _commitCylinders(const size_t materialId);
     void _commitCones(const size_t materialId);
     void _commitMeshes(const size_t materialId);
     void _commitStreamlines(const size_t materialId);
     void _commitSDFGeometries();
-    void _addGeometryToModel(const OSPGeometry geometry,
-                             const size_t materialId);
+    void _addGeometryToModel(const OSPGeometry geometry, const size_t materialId);
     void _setBVHFlags();
 
     // Models
@@ -105,4 +106,4 @@ private:
 
     MaterialPtr createMaterialImpl(const PropertyMap& properties = {}) final;
 };
-}
+}  // namespace brayns

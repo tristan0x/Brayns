@@ -26,8 +26,7 @@
 
 #include <ospray.h>
 
-namespace brayns
-{
+namespace brayns {
 /**
 
    OSPRay specific scene
@@ -35,9 +34,8 @@ namespace brayns
    This object is the OSPRay specific implementation of a scene
 
 */
-class OSPRayScene : public Scene
-{
-public:
+class OSPRayScene: public Scene {
+  public:
     OSPRayScene(AnimationParameters& animationParameters,
                 GeometryParameters& geometryParameters,
                 VolumeParameters& volumeParameters);
@@ -50,14 +48,20 @@ public:
     bool commitLights() final;
 
     /** @copydoc Scene::supportsConcurrentSceneUpdates. */
-    bool supportsConcurrentSceneUpdates() const final { return true; }
+    bool supportsConcurrentSceneUpdates() const final {
+        return true;
+    }
     ModelPtr createModel() const final;
 
-    OSPModel getModel() { return _rootModel; }
-    OSPData lightData() { return _ospLightData; }
+    OSPModel getModel() {
+        return _rootModel;
+    }
+    OSPData lightData() {
+        return _ospLightData;
+    }
     ModelDescriptorPtr getSimulatedModel();
 
-private:
+  private:
     bool _commitVolumeAndTransferFunction(ModelDescriptors& modelDescriptors);
     void _destroyLights();
 
@@ -71,5 +75,5 @@ private:
 
     ModelDescriptors _activeModels;
 };
-} // namespace brayns
-#endif // OSPRAYSCENE_H
+}  // namespace brayns
+#endif  // OSPRAYSCENE_H

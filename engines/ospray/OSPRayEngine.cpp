@@ -30,18 +30,15 @@
 #include "OSPRayRenderer.h"
 #include "OSPRayScene.h"
 
-#include <ospray/OSPConfig.h>                    // TILE_SIZE
-#include <ospray/SDK/camera/PerspectiveCamera.h> // enum StereoMode
+#include <ospray/OSPConfig.h>                     // TILE_SIZE
+#include <ospray/SDK/camera/PerspectiveCamera.h>  // enum StereoMode
 #include <ospray/version.h>
 
-namespace brayns
-{
+namespace brayns {
 OSPRayEngine::OSPRayEngine(ParametersManager& parametersManager)
-    : Engine(parametersManager)
-{
+    : Engine(parametersManager) {
     auto& ap = _parametersManager.getApplicationParameters();
-    try
-    {
+    try {
         std::vector<const char*> argv;
 
         // Ospray expects but ignores the application name as the first argument
@@ -53,44 +50,34 @@ OSPRayEngine::OSPRayEngine(ParametersManager& parametersManager)
         argv.push_back("--osp:erroroutput");
         argv.push_back("cerr");
 
-        if (_parametersManager.getApplicationParameters()
-                .getParallelRendering())
-        {
+        if (_parametersManager.getApplicationParameters().getParallelRendering()) {
             argv.push_back("--osp:mpi");
         }
 
         int argc = argv.size();
         ospInit(&argc, argv.data());
-    }
-    catch (const std::exception& e)
-    {
+    } catch (const std::exception& e) {
         // Note: This is necessary because OSPRay does not yet implement a
         // ospDestroy API.
         BRAYNS_ERROR << "Error during ospInit(): " << e.what() << std::endl;
     }
 
-    for (const auto& module : ap.getOsprayModules())
-    {
-        try
-        {
+    for (const auto& module: ap.getOsprayModules()) {
+        try {
             const auto error = ospLoadModule(module.c_str());
             if (error != OSP_NO_ERROR)
-                throw std::runtime_error(
-                    ospDeviceGetLastErrorMsg(ospGetCurrentDevice()));
-        }
-        catch (const std::exception& e)
-        {
-            BRAYNS_ERROR << "Error while loading module " << module << ": "
-                         << e.what() << std::endl;
+                throw std::runtime_error(ospDeviceGetLastErrorMsg(ospGetCurrentDevice()));
+        } catch (const std::exception& e) {
+            BRAYNS_ERROR << "Error while loading module " << module << ": " << e.what()
+                         << std::endl;
         }
     }
 
     _createRenderers();
 
-    _scene = std::make_shared<OSPRayScene>(
-        _parametersManager.getAnimationParameters(),
-        _parametersManager.getGeometryParameters(),
-        _parametersManager.getVolumeParameters());
+    _scene = std::make_shared<OSPRayScene>(_parametersManager.getAnimationParameters(),
+                                           _parametersManager.getGeometryParameters(),
+                                           _parametersManager.getVolumeParameters());
 
     _createCameras();
 
@@ -98,8 +85,7 @@ OSPRayEngine::OSPRayEngine(ParametersManager& parametersManager)
     _renderer->setCamera(_camera);
 }
 
-OSPRayEngine::~OSPRayEngine()
-{
+OSPRayEngine::~OSPRayEngine() {
     _scene.reset();
     _frameBuffers.clear();
     _renderer.reset();
@@ -108,40 +94,31 @@ OSPRayEngine::~OSPRayEngine()
     ospShutdown();
 }
 
-void OSPRayEngine::commit()
-{
+void OSPRayEngine::commit() {
     Engine::commit();
 
     auto device = ospGetCurrentDevice();
-    if (device && _parametersManager.getRenderingParameters().isModified())
-    {
+    if (device && _parametersManager.getRenderingParameters().isModified()) {
         const auto useDynamicLoadBalancer =
-            _parametersManager.getApplicationParameters()
-                .getDynamicLoadBalancer();
-        if (_useDynamicLoadBalancer != useDynamicLoadBalancer)
-        {
-            ospDeviceSet1i(device, "dynamicLoadBalancer",
-                           useDynamicLoadBalancer);
+            _parametersManager.getApplicationParameters().getDynamicLoadBalancer();
+        if (_useDynamicLoadBalancer != useDynamicLoadBalancer) {
+            ospDeviceSet1i(device, "dynamicLoadBalancer", useDynamicLoadBalancer);
             ospDeviceCommit(device);
             _useDynamicLoadBalancer = useDynamicLoadBalancer;
 
-            BRAYNS_INFO << "Using "
-                        << (useDynamicLoadBalancer ? "dynamic" : "static")
+            BRAYNS_INFO << "Using " << (useDynamicLoadBalancer ? "dynamic" : "static")
                         << " load balancer" << std::endl;
         }
     }
 }
 
-Vector2ui OSPRayEngine::getMinimumFrameSize() const
-{
+Vector2ui OSPRayEngine::getMinimumFrameSize() const {
     return {TILE_SIZE, TILE_SIZE};
 }
 
-void OSPRayEngine::_createRenderers()
-{
-    _renderer = std::make_shared<OSPRayRenderer>(
-        _parametersManager.getAnimationParameters(),
-        _parametersManager.getRenderingParameters());
+void OSPRayEngine::_createRenderers() {
+    _renderer = std::make_shared<OSPRayRenderer>(_parametersManager.getAnimationParameters(),
+                                                 _parametersManager.getRenderingParameters());
 
     addRendererType("raycast_Ng");
     addRendererType("raycast_Ns");
@@ -149,48 +126,32 @@ void OSPRayEngine::_createRenderers()
     {
         PropertyMap properties;
         properties.setProperty({"shadows", 0., 0., 1., {"Shadow intensity"}});
-        properties.setProperty(
-            {"softShadows", 0., 0., 1., {"Shadow softness"}});
+        properties.setProperty({"softShadows", 0., 0., 1., {"Shadow softness"}});
         addRendererType("pathtracing", properties);
     }
 
     {
         PropertyMap properties;
+        properties.setProperty({"alphaCorrection", 0.5, 0.001, 1., {"Alpha correction"}});
+        properties.setProperty({"detectionDistance", 1., {"Detection distance"}});
         properties.setProperty(
-            {"alphaCorrection", 0.5, 0.001, 1., {"Alpha correction"}});
+            {"detectionFarColor", std::array<double, 3>{{1., 0., 0.}}, {"Detection far color"}});
         properties.setProperty(
-            {"detectionDistance", 1., {"Detection distance"}});
-        properties.setProperty({"detectionFarColor",
-                                std::array<double, 3>{{1., 0., 0.}},
-                                {"Detection far color"}});
-        properties.setProperty({"detectionNearColor",
-                                std::array<double, 3>{{0., 1., 0.}},
-                                {"Detection near color"}});
-        properties.setProperty({"detectionOnDifferentMaterial",
-                                false,
-                                {"Detection on different material"}});
+            {"detectionNearColor", std::array<double, 3>{{0., 1., 0.}}, {"Detection near color"}});
         properties.setProperty(
-            {"electronShadingEnabled", false, {"Electron shading"}});
-        properties.setProperty(
-            {"surfaceShadingEnabled", true, {"Surface shading"}});
+            {"detectionOnDifferentMaterial", false, {"Detection on different material"}});
+        properties.setProperty({"electronShadingEnabled", false, {"Electron shading"}});
+        properties.setProperty({"surfaceShadingEnabled", true, {"Surface shading"}});
         addRendererType("proximity", properties);
     }
     {
         PropertyMap properties;
+        properties.setProperty({"aoDistance", 10000., {"Ambient occlusion distance"}});
         properties.setProperty(
-            {"aoDistance", 10000., {"Ambient occlusion distance"}});
-        properties.setProperty({"aoSamples",
-                                int32_t(1),
-                                int32_t(0),
-                                int32_t(128),
-                                {"Ambient occlusion samples"}});
-        properties.setProperty({"aoTransparencyEnabled",
-                                true,
-                                {"Ambient occlusion transparency"}});
-        properties.setProperty(
-            {"aoWeight", 0., 0., 1., {"Ambient occlusion weight"}});
-        properties.setProperty(
-            {"oneSidedLighting", true, {"One-sided lighting"}});
+            {"aoSamples", int32_t(1), int32_t(0), int32_t(128), {"Ambient occlusion samples"}});
+        properties.setProperty({"aoTransparencyEnabled", true, {"Ambient occlusion transparency"}});
+        properties.setProperty({"aoWeight", 0., 0., 1., {"Ambient occlusion weight"}});
+        properties.setProperty({"oneSidedLighting", true, {"One-sided lighting"}});
         properties.setProperty({"shadowsEnabled", false, {"Shadows"}});
         addRendererType("scivis", properties);
     }
@@ -198,49 +159,37 @@ void OSPRayEngine::_createRenderers()
     addRendererType("basic");
 }
 
-FrameBufferPtr OSPRayEngine::createFrameBuffer(
-    const std::string& name, const Vector2ui& frameSize,
-    const FrameBufferFormat frameBufferFormat) const
-{
-    return std::make_shared<OSPRayFrameBuffer>(name, frameSize,
-                                               frameBufferFormat);
+FrameBufferPtr OSPRayEngine::createFrameBuffer(const std::string& name,
+                                               const Vector2ui& frameSize,
+                                               const FrameBufferFormat frameBufferFormat) const {
+    return std::make_shared<OSPRayFrameBuffer>(name, frameSize, frameBufferFormat);
 }
 
 ScenePtr OSPRayEngine::createScene(AnimationParameters& animationParameters,
                                    GeometryParameters& geometryParameters,
-                                   VolumeParameters& volumeParameters) const
-{
-    return std::make_shared<OSPRayScene>(animationParameters,
-                                         geometryParameters, volumeParameters);
+                                   VolumeParameters& volumeParameters) const {
+    return std::make_shared<OSPRayScene>(animationParameters, geometryParameters, volumeParameters);
 }
 
-CameraPtr OSPRayEngine::createCamera() const
-{
+CameraPtr OSPRayEngine::createCamera() const {
     return std::make_shared<OSPRayCamera>();
 }
 
-RendererPtr OSPRayEngine::createRenderer(
-    const AnimationParameters& animationParameters,
-    const RenderingParameters& renderingParameters) const
-{
-    return std::make_shared<OSPRayRenderer>(animationParameters,
-                                            renderingParameters);
+RendererPtr OSPRayEngine::createRenderer(const AnimationParameters& animationParameters,
+                                         const RenderingParameters& renderingParameters) const {
+    return std::make_shared<OSPRayRenderer>(animationParameters, renderingParameters);
 }
 
-void OSPRayEngine::_createCameras()
-{
+void OSPRayEngine::_createCameras() {
     _camera = std::make_shared<OSPRayCamera>();
 
-    const bool isStereo =
-        _parametersManager.getApplicationParameters().isStereo();
+    const bool isStereo = _parametersManager.getApplicationParameters().isStereo();
     Property stereoProperty{"stereo", isStereo, {"Stereo"}};
     stereoProperty.markReadOnly();
     Property fovy{"fovy", 45., .1, 360., {"Field of view"}};
     Property aspect{"aspect", 1., {"Aspect ratio"}};
     aspect.markReadOnly();
-    Property eyeSeparation{"interpupillaryDistance",
-                           0.0635,
-                           {"Eye separation"}};
+    Property eyeSeparation{"interpupillaryDistance", 0.0635, {"Eye separation"}};
 
     {
         PropertyMap properties;
@@ -248,8 +197,7 @@ void OSPRayEngine::_createCameras()
         properties.setProperty(aspect);
         properties.setProperty({"apertureRadius", 0., {"Aperture radius"}});
         properties.setProperty({"focusDistance", 1., {"Focus Distance"}});
-        if (isStereo)
-        {
+        if (isStereo) {
             properties.setProperty(stereoProperty);
             properties.setProperty(eyeSeparation);
         }
@@ -265,21 +213,19 @@ void OSPRayEngine::_createCameras()
         PropertyMap properties;
         properties.setProperty(fovy);
         properties.setProperty(aspect);
-        if (isStereo)
-        {
+        if (isStereo) {
             properties.setProperty(stereoProperty);
             properties.setProperty(eyeSeparation);
-            properties.setProperty(
-                {"zeroParallaxPlane", 1., {"Zero parallax plane"}});
+            properties.setProperty({"zeroParallaxPlane", 1., {"Zero parallax plane"}});
         }
         addCameraType("perspectiveParallax", properties);
     }
     addCameraType("panoramic");
 }
-}
+}  // namespace brayns
 
-extern "C" brayns::Engine* brayns_engine_create(
-    int, const char**, brayns::ParametersManager& parametersManager)
-{
+extern "C" brayns::Engine* brayns_engine_create(int,
+                                                const char**,
+                                                brayns::ParametersManager& parametersManager) {
     return new brayns::OSPRayEngine(parametersManager);
 }

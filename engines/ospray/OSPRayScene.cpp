@@ -33,29 +33,24 @@
 #include <brayns/parameters/GeometryParameters.h>
 #include <brayns/parameters/VolumeParameters.h>
 
-namespace brayns
-{
+namespace brayns {
 OSPRayScene::OSPRayScene(AnimationParameters& animationParameters,
                          GeometryParameters& geometryParameters,
                          VolumeParameters& volumeParameters)
     : Scene(animationParameters, geometryParameters, volumeParameters)
-    , _memoryManagementFlags(geometryParameters.getMemoryMode() ==
-                                     MemoryMode::shared
+    , _memoryManagementFlags(geometryParameters.getMemoryMode() == MemoryMode::shared
                                  ? uint32_t(OSP_DATA_SHARED_BUFFER)
-                                 : 0)
-{
+                                 : 0) {
     _backgroundMaterial = std::make_shared<OSPRayMaterial>(PropertyMap(), true);
 }
 
-OSPRayScene::~OSPRayScene()
-{
+OSPRayScene::~OSPRayScene() {
     _destroyLights();
     if (_rootModel)
         ospRelease(_rootModel);
 }
-void OSPRayScene::_destroyLights()
-{
-    for (auto& light : _ospLights)
+void OSPRayScene::_destroyLights() {
+    for (auto& light: _ospLights)
         ospRelease(light);
     _ospLights.clear();
 
@@ -63,8 +58,7 @@ void OSPRayScene::_destroyLights()
     _ospLightData = nullptr;
 }
 
-void OSPRayScene::commit()
-{
+void OSPRayScene::commit() {
     Scene::commit();
     commitLights();
 
@@ -76,18 +70,14 @@ void OSPRayScene::commit()
     }
 
     const bool rebuildScene = isModified();
-    const bool addRemoveVolumes =
-        _commitVolumeAndTransferFunction(modelDescriptors);
+    const bool addRemoveVolumes = _commitVolumeAndTransferFunction(modelDescriptors);
 
-    if (!rebuildScene && !addRemoveVolumes)
-    {
+    if (!rebuildScene && !addRemoveVolumes) {
         // check for dirty models aka their geometry has been altered
         bool doUpdate = false;
-        for (auto& modelDescriptor : modelDescriptors)
-        {
+        for (auto& modelDescriptor: modelDescriptors) {
             auto& model = modelDescriptor->getModel();
-            if (model.isDirty())
-            {
+            if (model.isDirty()) {
                 model.commitGeometry();
                 // need to continue re-adding the models to update the bounding
                 // box model to reflect the new model size
@@ -104,8 +94,7 @@ void OSPRayScene::commit()
         ospRelease(_rootModel);
     _rootModel = ospNewModel();
 
-    for (auto modelDescriptor : modelDescriptors)
-    {
+    for (auto modelDescriptor: modelDescriptors) {
         if (!modelDescriptor->getEnabled())
             continue;
 
@@ -116,39 +105,30 @@ void OSPRayScene::commit()
         auto& impl = static_cast<OSPRayModel&>(modelDescriptor->getModel());
         const auto& transformation = modelDescriptor->getTransformation();
 
-        BRAYNS_DEBUG << "Committing " << modelDescriptor->getName()
-                     << std::endl;
+        BRAYNS_DEBUG << "Committing " << modelDescriptor->getName() << std::endl;
 
         impl.commitGeometry();
         impl.logInformation();
 
         // add volumes to root model, because scivis renderer does not consider
         // volumes from instances
-        if (modelDescriptor->getVisible())
-        {
+        if (modelDescriptor->getVisible()) {
             modelDescriptor->getModel().commitGeometry();
-            for (auto volume : modelDescriptor->getModel().getVolumes())
-            {
-                auto ospVolume =
-                    std::dynamic_pointer_cast<OSPRayVolume>(volume);
+            for (auto volume: modelDescriptor->getModel().getVolumes()) {
+                auto ospVolume = std::dynamic_pointer_cast<OSPRayVolume>(volume);
                 ospAddVolume(_rootModel, ospVolume->impl());
             }
         }
 
-        for (const auto& instance : modelDescriptor->getInstances())
-        {
-            const auto instanceTransform =
-                transformation * instance.getTransformation();
+        for (const auto& instance: modelDescriptor->getInstances()) {
+            const auto instanceTransform = transformation * instance.getTransformation();
 
-            if (modelDescriptor->getBoundingBox() && instance.getBoundingBox())
-            {
+            if (modelDescriptor->getBoundingBox() && instance.getBoundingBox()) {
                 // scale and move the unit-sized bounding box geometry to the
                 // model size/scale first, then apply the instance transform
-                const auto& modelBounds =
-                    modelDescriptor->getModel().getBounds();
+                const auto& modelBounds = modelDescriptor->getModel().getBounds();
                 Transformation modelTransform;
-                modelTransform.setTranslation(modelBounds.getCenter() /
-                                                  modelBounds.getSize() -
+                modelTransform.setTranslation(modelBounds.getCenter() / modelBounds.getSize() -
                                               Vector3d(0.5));
                 modelTransform.setScale(modelBounds.getSize());
 
@@ -158,8 +138,7 @@ void OSPRayScene::commit()
             }
 
             if (modelDescriptor->getVisible() && instance.getVisible())
-                addInstance(_rootModel, impl.getPrimaryModel(),
-                            instanceTransform);
+                addInstance(_rootModel, impl.getPrimaryModel(), instanceTransform);
         }
 
         impl.markInstancesClean();
@@ -175,22 +154,18 @@ void OSPRayScene::commit()
     markModified();
 }
 
-bool OSPRayScene::commitLights()
-{
+bool OSPRayScene::commitLights() {
     if (!_lightManager.isModified())
         return false;
 
     _destroyLights();
 
-    for (const auto& kv : _lightManager.getLights())
-    {
+    for (const auto& kv: _lightManager.getLights()) {
         auto baseLight = kv.second;
         OSPLight ospLight{nullptr};
 
-        switch (baseLight->_type)
-        {
-        case LightType::DIRECTIONAL:
-        {
+        switch (baseLight->_type) {
+        case LightType::DIRECTIONAL: {
             ospLight = ospNewLight3("distant");
             const auto light = static_cast<DirectionalLight*>(baseLight.get());
             osphelper::set(ospLight, "direction", Vector3f(light->_direction));
@@ -198,17 +173,14 @@ bool OSPRayScene::commitLights()
                            static_cast<float>(light->_angularDiameter));
             break;
         }
-        case LightType::SPHERE:
-        {
+        case LightType::SPHERE: {
             ospLight = ospNewLight3("point");
             const auto light = static_cast<SphereLight*>(baseLight.get());
             osphelper::set(ospLight, "position", Vector3f(light->_position));
-            osphelper::set(ospLight, "radius",
-                           static_cast<float>(light->_radius));
+            osphelper::set(ospLight, "radius", static_cast<float>(light->_radius));
             break;
         }
-        case LightType::QUAD:
-        {
+        case LightType::QUAD: {
             ospLight = ospNewLight3("quad");
             const auto light = static_cast<QuadLight*>(baseLight.get());
             osphelper::set(ospLight, "position", Vector3f(light->_position));
@@ -216,22 +188,17 @@ bool OSPRayScene::commitLights()
             osphelper::set(ospLight, "edge2", Vector3f(light->_edge2));
             break;
         }
-        case LightType::SPOTLIGHT:
-        {
+        case LightType::SPOTLIGHT: {
             ospLight = ospNewLight3("spot");
             const auto light = static_cast<SpotLight*>(baseLight.get());
             osphelper::set(ospLight, "position", Vector3f(light->_position));
             osphelper::set(ospLight, "direction", Vector3f(light->_direction));
-            osphelper::set(ospLight, "openingAngle",
-                           static_cast<float>(light->_openingAngle));
-            osphelper::set(ospLight, "penumbraAngle",
-                           static_cast<float>(light->_penumbraAngle));
-            osphelper::set(ospLight, "radius",
-                           static_cast<float>(light->_radius));
+            osphelper::set(ospLight, "openingAngle", static_cast<float>(light->_openingAngle));
+            osphelper::set(ospLight, "penumbraAngle", static_cast<float>(light->_penumbraAngle));
+            osphelper::set(ospLight, "radius", static_cast<float>(light->_radius));
             break;
         }
-        case LightType::AMBIENT:
-        {
+        case LightType::AMBIENT: {
             ospLight = ospNewLight3("ambient");
             break;
         }
@@ -240,8 +207,7 @@ bool OSPRayScene::commitLights()
         assert(ospLight);
 
         osphelper::set(ospLight, "color", Vector3f(baseLight->_color));
-        osphelper::set(ospLight, "intensity",
-                       static_cast<float>(baseLight->_intensity));
+        osphelper::set(ospLight, "intensity", static_cast<float>(baseLight->_intensity));
         // NOTE: Bool is broken before OSPRay 1.8.3 so set it to 1 or 0
         osphelper::set(ospLight, "isVisible", baseLight->_isVisible ? 1 : 0);
 
@@ -252,35 +218,27 @@ bool OSPRayScene::commitLights()
     // NOTE: since the lights are shared between scene and renderer we let
     // OSPRay allocate a new buffer to avoid use-after-free issues
     const size_t memoryFlags = 0;
-    _ospLightData = ospNewData(_ospLights.size(), OSP_OBJECT, _ospLights.data(),
-                               memoryFlags);
+    _ospLightData = ospNewData(_ospLights.size(), OSP_OBJECT, _ospLights.data(), memoryFlags);
     ospCommit(_ospLightData);
 
     return true;
 }
 
-bool OSPRayScene::_commitVolumeAndTransferFunction(
-    ModelDescriptors& modelDescriptors)
-{
+bool OSPRayScene::_commitVolumeAndTransferFunction(ModelDescriptors& modelDescriptors) {
     bool rebuildScene = false;
-    for (auto& modelDescriptor : modelDescriptors)
-    {
+    for (auto& modelDescriptor: modelDescriptors) {
         auto& model = static_cast<OSPRayModel&>(modelDescriptor->getModel());
         const bool dirtyTransferFunction = model.commitTransferFunction();
         const bool dirtySimulationData = model.commitSimulationData();
 
         if (dirtyTransferFunction || dirtySimulationData)
             markModified(false);
-        if (model.isVolumesDirty())
-        {
+        if (model.isVolumesDirty()) {
             rebuildScene = true;
             model.resetVolumesDirty();
         }
-        for (auto volume : model.getVolumes())
-        {
-            if (volume->isModified() || rebuildScene ||
-                _volumeParameters.isModified())
-            {
+        for (auto volume: model.getVolumes()) {
+            if (volume->isModified() || rebuildScene || _volumeParameters.isModified()) {
                 volume->commit();
                 // to reset accumulation if new blocks are added
                 markModified(false);
@@ -290,22 +248,17 @@ bool OSPRayScene::_commitVolumeAndTransferFunction(
     return rebuildScene;
 }
 
-ModelPtr OSPRayScene::createModel() const
-{
-    return std::make_unique<OSPRayModel>(_animationParameters,
-                                         _volumeParameters);
+ModelPtr OSPRayScene::createModel() const {
+    return std::make_unique<OSPRayModel>(_animationParameters, _volumeParameters);
 }
 
-ModelDescriptorPtr OSPRayScene::getSimulatedModel()
-{
+ModelDescriptorPtr OSPRayScene::getSimulatedModel() {
     auto lock = acquireReadAccess();
-    for (auto model : _modelDescriptors)
-    {
-        const auto& ospModel =
-            static_cast<const OSPRayModel&>(model->getModel());
+    for (auto model: _modelDescriptors) {
+        const auto& ospModel = static_cast<const OSPRayModel&>(model->getModel());
         if (ospModel.simulationData())
             return model;
     }
     return ModelDescriptorPtr{};
 }
-} // namespace brayns
+}  // namespace brayns

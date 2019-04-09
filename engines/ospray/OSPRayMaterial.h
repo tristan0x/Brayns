@@ -24,17 +24,12 @@
 #include <brayns/engine/Material.h>
 #include <ospray.h>
 
-namespace brayns
-{
-class OSPRayMaterial : public Material
-{
-public:
-    OSPRayMaterial(const PropertyMap& properties = {},
-                   const bool backgroundMaterial = false)
+namespace brayns {
+class OSPRayMaterial: public Material {
+  public:
+    OSPRayMaterial(const PropertyMap& properties = {}, const bool backgroundMaterial = false)
         : Material(properties)
-        , _isBackGroundMaterial(backgroundMaterial)
-    {
-    }
+        , _isBackGroundMaterial(backgroundMaterial) {}
     ~OSPRayMaterial();
 
     /** Noop until commit(renderer) is called. */
@@ -45,12 +40,15 @@ public:
      */
     void commit(const std::string& renderer);
 
-    OSPMaterial getOSPMaterial() { return _ospMaterial; }
-private:
+    OSPMaterial getOSPMaterial() {
+        return _ospMaterial;
+    }
+
+  private:
     OSPTexture _createOSPTexture2D(Texture2DPtr texture);
     OSPMaterial _ospMaterial{nullptr};
     bool _isBackGroundMaterial{false};
 };
-}
+}  // namespace brayns
 
-#endif // OSPRAYMATERIAL_H
+#endif  // OSPRAYMATERIAL_H

@@ -28,23 +28,23 @@
 
 #include "OSPRayCamera.h"
 
-namespace brayns
-{
-class OSPRayRenderer : public Renderer
-{
-public:
+namespace brayns {
+class OSPRayRenderer: public Renderer {
+  public:
     OSPRayRenderer(const AnimationParameters& animationParameters,
                    const RenderingParameters& renderingParameters);
     ~OSPRayRenderer();
 
     void render(FrameBufferPtr frameBuffer) final;
     void commit() final;
-    float getVariance() const final { return _variance; }
+    float getVariance() const final {
+        return _variance;
+    }
     void setCamera(CameraPtr camera) final;
 
     PickResult pick(const Vector2f& pickPos) final;
 
-private:
+  private:
     OSPRayCamera* _camera{nullptr};
     OSPRenderer _renderer{nullptr};
     std::atomic<float> _variance{std::numeric_limits<float>::max()};
@@ -55,6 +55,6 @@ private:
     void _commitRendererMaterials();
     void _destroyRenderer();
 };
-} // namespace brayns
+}  // namespace brayns
 
-#endif // OSPRAYRENDERER_H
+#endif  // OSPRAYRENDERER_H

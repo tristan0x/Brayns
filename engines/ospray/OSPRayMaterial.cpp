@@ -27,31 +27,28 @@
 
 #include <cassert>
 
-namespace brayns
-{
-struct TextureTypeMaterialAttribute
-{
+namespace brayns {
+struct TextureTypeMaterialAttribute {
     TextureType type;
     std::string attribute;
 };
 
-static TextureTypeMaterialAttribute textureTypeMaterialAttribute[8] = {
-    {TT_DIFFUSE, "map_kd"},
-    {TT_NORMALS, "map_bump"},
-    {TT_BUMP, "map_bump"},
-    {TT_SPECULAR, "map_ks"},
-    {TT_EMISSIVE, "map_ns"},
-    {TT_OPACITY, "map_d"},
-    {TT_REFLECTION, "map_reflection"},
-    {TT_REFRACTION, "map_refraction"}};
+static TextureTypeMaterialAttribute textureTypeMaterialAttribute[8] = {{TT_DIFFUSE, "map_kd"},
+                                                                       {TT_NORMALS, "map_bump"},
+                                                                       {TT_BUMP, "map_bump"},
+                                                                       {TT_SPECULAR, "map_ks"},
+                                                                       {TT_EMISSIVE, "map_ns"},
+                                                                       {TT_OPACITY, "map_d"},
+                                                                       {TT_REFLECTION,
+                                                                        "map_reflection"},
+                                                                       {TT_REFRACTION,
+                                                                        "map_refraction"}};
 
-OSPRayMaterial::~OSPRayMaterial()
-{
+OSPRayMaterial::~OSPRayMaterial() {
     ospRelease(_ospMaterial);
 }
 
-void OSPRayMaterial::commit()
-{
+void OSPRayMaterial::commit() {
     // Do nothing until this material is instanced for a specific renderer
     if (!_ospMaterial || !isModified())
         return;
@@ -65,10 +62,8 @@ void OSPRayMaterial::commit()
     osphelper::set(_ospMaterial, "ks", Vector3f(_specularColor));
     osphelper::set(_ospMaterial, "ns", static_cast<float>(_specularExponent));
     osphelper::set(_ospMaterial, "d", static_cast<float>(_opacity));
-    osphelper::set(_ospMaterial, "refraction",
-                   static_cast<float>(_refractionIndex));
-    osphelper::set(_ospMaterial, "reflection",
-                   static_cast<float>(_reflectionIndex));
+    osphelper::set(_ospMaterial, "refraction", static_cast<float>(_refractionIndex));
+    osphelper::set(_ospMaterial, "reflection", static_cast<float>(_reflectionIndex));
     osphelper::set(_ospMaterial, "a", static_cast<float>(_emission));
     osphelper::set(_ospMaterial, "glossiness", static_cast<float>(_glossiness));
     osphelper::set(_ospMaterial, "skybox", _isBackGroundMaterial);
@@ -77,18 +72,15 @@ void OSPRayMaterial::commit()
     toOSPRayProperties(*this, _ospMaterial);
 
     // Textures
-    for (const auto& textureType : textureTypeMaterialAttribute)
+    for (const auto& textureType: textureTypeMaterialAttribute)
         ospSetObject(_ospMaterial, textureType.attribute.c_str(), nullptr);
 
-    for (const auto& textureDescriptor : _textureDescriptors)
-    {
+    for (const auto& textureDescriptor: _textureDescriptors) {
         const auto texType = textureDescriptor.first;
         auto texture = getTexture(texType);
-        if (texture)
-        {
+        if (texture) {
             auto ospTexture = _createOSPTexture2D(texture);
-            const auto str =
-                textureTypeMaterialAttribute[texType].attribute.c_str();
+            const auto str = textureTypeMaterialAttribute[texType].attribute.c_str();
             ospSetObject(_ospMaterial, str, ospTexture);
             ospRelease(ospTexture);
         }
@@ -98,30 +90,25 @@ void OSPRayMaterial::commit()
     resetModified();
 }
 
-void OSPRayMaterial::commit(const std::string& renderer)
-{
+void OSPRayMaterial::commit(const std::string& renderer) {
     if (!isModified())
         return;
     ospRelease(_ospMaterial);
     _ospMaterial = ospNewMaterial2(renderer.c_str(), "default_material");
-    markModified(false); // Ensure commit recreates the ISPC object
+    markModified(false);  // Ensure commit recreates the ISPC object
     commit();
 }
 
-OSPTexture OSPRayMaterial::_createOSPTexture2D(Texture2DPtr texture)
-{
-    OSPTextureFormat type = OSP_TEXTURE_R8; // smallest valid type as default
-    if (texture->getDepth() == 1)
-    {
+OSPTexture OSPRayMaterial::_createOSPTexture2D(Texture2DPtr texture) {
+    OSPTextureFormat type = OSP_TEXTURE_R8;  // smallest valid type as default
+    if (texture->getDepth() == 1) {
         if (texture->getNbChannels() == 1)
             type = OSP_TEXTURE_R8;
         if (texture->getNbChannels() == 3)
             type = OSP_TEXTURE_RGB8;
         if (texture->getNbChannels() == 4)
             type = OSP_TEXTURE_RGBA8;
-    }
-    else if (texture->getDepth() == 4)
-    {
+    } else if (texture->getDepth() == 4) {
         if (texture->getNbChannels() == 1)
             type = OSP_TEXTURE_R32F;
         if (texture->getNbChannels() == 3)
@@ -130,9 +117,9 @@ OSPTexture OSPRayMaterial::_createOSPTexture2D(Texture2DPtr texture)
             type = OSP_TEXTURE_RGBA32F;
     }
 
-    BRAYNS_DEBUG << "Creating OSPRay texture from " << texture->getFilename()
-                 << ": " << texture->getWidth() << "x" << texture->getHeight()
-                 << "x" << (int)type << std::endl;
+    BRAYNS_DEBUG << "Creating OSPRay texture from " << texture->getFilename() << ": "
+                 << texture->getWidth() << "x" << texture->getHeight() << "x" << (int) type
+                 << std::endl;
 
     OSPTexture ospTexture = ospNewTexture("texture2d");
 
@@ -140,13 +127,12 @@ OSPTexture OSPRayMaterial::_createOSPTexture2D(Texture2DPtr texture)
 
     osphelper::set(ospTexture, "type", static_cast<int>(type));
     osphelper::set(ospTexture, "size", size);
-    auto textureData =
-        ospNewData(texture->getSizeInBytes(), OSP_RAW, texture->getRawData(),
-                   OSP_DATA_SHARED_BUFFER);
+    auto textureData = ospNewData(texture->getSizeInBytes(), OSP_RAW, texture->getRawData(),
+                                  OSP_DATA_SHARED_BUFFER);
     ospSetObject(ospTexture, "data", textureData);
     ospRelease(textureData);
     ospCommit(ospTexture);
 
     return ospTexture;
 }
-} // namespace brayns
+}  // namespace brayns

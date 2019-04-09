@@ -23,15 +23,12 @@
 #include "OSPRayCamera.h"
 #include "utils.h"
 
-namespace brayns
-{
-OSPRayCamera::~OSPRayCamera()
-{
+namespace brayns {
+OSPRayCamera::~OSPRayCamera() {
     ospRelease(_camera);
 }
 
-void OSPRayCamera::commit()
-{
+void OSPRayCamera::commit() {
     if (!isModified())
         return;
 
@@ -51,16 +48,12 @@ void OSPRayCamera::commit()
     toOSPRayProperties(*this, _camera);
 
     // Clip planes
-    if (!_clipPlanes.empty())
-    {
+    if (!_clipPlanes.empty()) {
         const auto clipPlanes = convertVectorToFloat(_clipPlanes);
-        auto clipPlaneData =
-            ospNewData(clipPlanes.size(), OSP_FLOAT4, clipPlanes.data());
+        auto clipPlaneData = ospNewData(clipPlanes.size(), OSP_FLOAT4, clipPlanes.data());
         ospSetData(_camera, "clipPlanes", clipPlaneData);
         ospRelease(clipPlaneData);
-    }
-    else
-    {
+    } else {
         // ospRemoveParam leaks objects, so we set it to null first
         ospSetData(_camera, "clipPlanes", nullptr);
         ospRemoveParam(_camera, "clipPlanes");
@@ -69,30 +62,26 @@ void OSPRayCamera::commit()
     ospCommit(_camera);
 }
 
-void OSPRayCamera::setEnvironmentMap(const bool environmentMap)
-{
+void OSPRayCamera::setEnvironmentMap(const bool environmentMap) {
     osphelper::set(_camera, "environmentMap", environmentMap ? 1 : 0);
     ospCommit(_camera);
 }
 
-void OSPRayCamera::setClipPlanes(const Planes& planes)
-{
+void OSPRayCamera::setClipPlanes(const Planes& planes) {
     if (_clipPlanes == planes)
         return;
     _clipPlanes = planes;
     markModified(false);
 }
 
-void OSPRayCamera::_createOSPCamera()
-{
+void OSPRayCamera::_createOSPCamera() {
     auto newCamera = ospNewCamera(getCurrentType().c_str());
     if (!newCamera)
-        throw std::runtime_error(getCurrentType() +
-                                 " is not a registered camera");
+        throw std::runtime_error(getCurrentType() + " is not a registered camera");
     if (_camera)
         ospRelease(_camera);
     _camera = newCamera;
     _currentOSPCamera = getCurrentType();
     markModified(false);
 }
-} // namespace brayns
+}  // namespace brayns

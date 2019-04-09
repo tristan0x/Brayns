@@ -24,8 +24,7 @@
 #include <ospray/SDK/common/Managed.h>
 #include <ospray/SDK/common/OSPCommon.h>
 
-namespace brayns
-{
+namespace brayns {
 /**
  * Set all the properties from the current property map of the given object to
  * the given ospray object.
@@ -35,28 +34,22 @@ void toOSPRayProperties(const PropertyMap& object, OSPObject ospObject);
 
 /** Update all the properties in the property map from the given ospray object.
  */
-void fromOSPRayProperties(PropertyMap& object,
-                          ospray::ManagedObject& ospObject);
+void fromOSPRayProperties(PropertyMap& object, ospray::ManagedObject& ospObject);
 
 /** Convert a brayns::Transformation to an ospcommon::affine3f. */
-ospcommon::affine3f transformationToAffine3f(
-    const Transformation& transformation);
+ospcommon::affine3f transformationToAffine3f(const Transformation& transformation);
 
 /** Helper to add the given model as an instance to the given root model. */
-void addInstance(OSPModel rootModel, OSPModel modelToAdd,
-                 const Transformation& transform);
-void addInstance(OSPModel rootModel, OSPModel modelToAdd,
-                 const ospcommon::affine3f& affine);
+void addInstance(OSPModel rootModel, OSPModel modelToAdd, const Transformation& transform);
+void addInstance(OSPModel rootModel, OSPModel modelToAdd, const ospcommon::affine3f& affine);
 
 /** Helper to convert a vector of double tuples to a vector of float tuples. */
 template <size_t S>
 std::vector<std::array<float, S>> convertVectorToFloat(
-    const std::vector<std::array<double, S>>& input)
-{
+    const std::vector<std::array<double, S>>& input) {
     std::vector<std::array<float, S>> output;
     output.reserve(input.size());
-    for (const auto& value : input)
-    {
+    for (const auto& value: input) {
         std::array<float, S> converted;
         std::copy(value.data(), value.data() + S, converted.data());
         output.push_back(converted);
@@ -64,8 +57,7 @@ std::vector<std::array<float, S>> convertVectorToFloat(
     return output;
 }
 
-namespace osphelper
-{
+namespace osphelper {
 /** Helper methods for setting properties on OSPRay object */
 void set(OSPObject obj, const char* id, const char* s);
 void set(OSPObject obj, const char* id, const std::string& s);
@@ -81,5 +73,5 @@ void set(OSPObject obj, const char* id, const Vector3f& v);
 void set(OSPObject obj, const char* id, const Vector3i& v);
 
 void set(OSPObject obj, const char* id, const Vector4f& v);
-} // namespace osphelper
-} // namespace brayns
+}  // namespace osphelper
+}  // namespace brayns
